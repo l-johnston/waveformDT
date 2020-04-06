@@ -64,12 +64,25 @@ class WaveformDT(np.lib.mixins.NDArrayOperatorsMixin):
         return self.Y
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        if method == "__call__":
-            inputs = (
-                inp.Y if isinstance(inp, self.__class__) else inp for inp in inputs
-            )
-            return self.__class__(ufunc(*inputs, **kwargs), self.dt, self.t0)
-        raise NotImplementedError
+        args = []
+        for input_ in inputs:
+            if isinstance(input_, WaveformDT):
+                args.append(input_.Y)
+            else:
+                args.append(input_)
+        output = kwargs.pop("out", (None,))[0]
+        if output is not None:
+            if isinstance(output, WaveformDT):
+                kwargs["out"] = output.Y
+            else:
+                kwargs["out"] = output
+        arr_result = self.Y.__array_ufunc__(ufunc, method, *args, **kwargs)
+        if arr_result is NotImplemented:
+            return NotImplemented
+        if method == "at":
+            return None
+        result = WaveformDT(arr_result, self.dt, self.t0) if output is None else output
+        return result
 
     def set_attributes(self, **kwargs):
         """Set waveform attributes"""
@@ -212,11 +225,11 @@ class WaveformDT(np.lib.mixins.NDArrayOperatorsMixin):
             for i, sample in enumerate(self.Y):
                 rows.append(f"{t0 + i*dt:11.4e}\t{sample:11.4e}")
         else:
-            for i, sample in enumerate(self[:5]):
+            for i, sample in enumerate(self[:5].Y):
                 rows.append(f"{t0 + i*dt:11.4e}\t{sample:11.4e}")
             rows.append(" ...")
             t0 = t0 + (self.size - 5) * dt
-            for i, sample in enumerate(self[-5:]):
+            for i, sample in enumerate(self[-5:].Y):
                 rows.append(f"{t0 + i*dt:11.4e}\t{sample:11.4e}")
         rows.append(f"Length: {self.size}")
         rows.append(f"t0: {self.t0}")

@@ -38,6 +38,15 @@ def test_math_nounits():
     wf = WaveformDT([0, 1, 2], 1, 0)
     assert (np.asarray(2 * wf) == np.asarray([0, 2, 4])).all()
     assert (np.asarray(wf + 2) == np.asarray([2, 3, 4])).all()
+    np.multiply.at(wf, [0, 1, 2], 2.0)
+    assert (wf.Y == np.asarray([0.0, 2.0, 4.0])).all()
+    arr_out = np.asarray([0.0] * 3)
+    np.multiply(wf, 2.0, out=arr_out)
+    assert (arr_out == np.asarray([0.0, 4.0, 8.0])).all()
+    wf_out = WaveformDT([0.0] * 3, 1, 0)
+    assert isinstance(wf_out, WaveformDT)
+    np.multiply(wf, 2.0, out=wf_out)
+    assert (wf_out.Y == np.asarray([0.0, 4.0, 8.0])).all()
 
 
 def test_attributes_withunits():
